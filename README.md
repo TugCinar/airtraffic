@@ -1,6 +1,4 @@
-![Image](images/image.png)
-
-airtraffic
+Airtraffic
 ==============================
 
 forecast air traffic

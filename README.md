@@ -1,4 +1,4 @@
-![image](C:\Users\Tugay\Documents\mes_projets\airtraffic/image.jpg)
+![image](C:\Users\Tugay\Documents\mes_projets\airtraffic/image.png)
 
 airtraffic
 ==============================

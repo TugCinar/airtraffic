@@ -32,7 +32,14 @@ Launch the streamlit application
 ------------
 1. Use with anaconda prompt:
 ```streamlit run app.py ```
-2. enjoy !
+2. To use the application please select the origin and destination airports.
+Some airports do not serve other airports, so here is a list of airports that contain data:
+LGW-AMS
+LGW-BCN
+LYS-OPO 
+LYS-ORY
+
+3.Then select the date and the number of days you want to predict. The result is in red and you can see the different evaluations of the model
 
 Modification
 ------------

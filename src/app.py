@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 from prophet import Prophet
 
 HOME_AIRPORTS = ('LGW', 'LIS', 'LYS', 'NTE')
-PAIRED_AIRPORTS = ('FUE', 'AMS', 'ORY')
+PAIRED_AIRPORTS = ('FUE', 'AMS', 'ORY','BCN','OPO',)
 
 df = pd.read_parquet('data/traffic_10lines.parquet')
 

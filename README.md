@@ -1,4 +1,4 @@
-![Image](images/image.png)
+![Image](image.png)
 
 Airtraffic
 ==============================

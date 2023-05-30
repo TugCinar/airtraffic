@@ -46,6 +46,9 @@ Modification
 
 you can modify the source code of app.py using local software
 
+Streamlit app
+------------
+https://tugcinar-airtraffic-srcapp-1375i1.streamlit.app/
 
 
 

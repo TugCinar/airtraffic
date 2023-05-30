@@ -3,7 +3,7 @@ arrow==1.2.3
 attrs==22.2.0
 binaryornot==0.4.4
 blinker==1.5
-Bottleneck @ file:///C:/Windows/Temp/abs_3198ca53-903d-42fd-87b4-03e6d03a8381yfwsuve8/croots/recipe/bottleneck_1657175565403/work
+Bottleneck
 cachetools==5.3.0
 certifi @ file:///C:/b/abs_85o_6fm0se/croot/certifi_1671487778835/work/certifi
 chardet==3.0.4

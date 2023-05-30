@@ -10,8 +10,8 @@ Project description
 ------------
 
 
-The objective of the code is therefore to forecast air traffic according to the base airport and the destination airport. To achieve this we will use the Prophet model developed by facebook (link to documentation: https://facebook.github.io/prophet/).
-The results of the prediction will be readable in red on the graph displayed on the streamlit application.
+The objective of the code is therefore to forecast air traffic according to the base airport and the destination airport. To do this, we will use the Prophet model developed by facebook (link to documentation: https://facebook.github.io/prophet/) and also the Nixtla models (https://www.nixtla.io/).
+The prediction results will be displayed on the streamlit application according to the model chosen.
 
 Environment
 ------------

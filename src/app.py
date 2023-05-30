@@ -124,7 +124,7 @@ if run_forecast_button:
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
-            go.Scatter(x=forecast_dates, y=lgb_predictions, mode='lines', line=dict(dash='dash', color='green'),
+            go.Scatter(x=forecast_dates, y=lgb_predictions, mode='lines', line=dict(dash='dash', color='red'),
                        name='LGBMRegressor'), row=1, col=1
         )
 
@@ -152,7 +152,7 @@ if run_forecast_button:
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
-            go.Scatter(x=forecast_dates, y=xgb_predictions, mode='lines', line=dict(dash='dash', color='blue'),
+            go.Scatter(x=forecast_dates, y=xgb_predictions, mode='lines', line=dict(dash='dash', color='red'),
                        name='XGBRegressor'), row=1, col=1
         )
 
@@ -180,7 +180,7 @@ if run_forecast_button:
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
-            go.Scatter(x=forecast_dates, y=rf_predictions, mode='lines', line=dict(dash='dash', color='orange'),
+            go.Scatter(x=forecast_dates, y=rf_predictions, mode='lines', line=dict(dash='dash', color='red'),
                        name='RandomForestRegressor'), row=1, col=1
         )
 

@@ -1,3 +1,5 @@
+
+df = pd.read_parquet('src/data/traffic_10lines.parquet')
 import pandas as pd
 import streamlit as st
 import plotly.graph_objs as go
@@ -16,7 +18,7 @@ st.image(image_path, caption="Logo", use_column_width=True)
 HOME_AIRPORTS = ('LGW', 'LIS', 'LYS', 'NTE')
 PAIRED_AIRPORTS = ('FUE', 'AMS', 'ORY', 'BCN', 'OPO')
 
-df = pd.read_parquet('src/data/traffic_10lines.parquet')
+df = pd.read_parquet('data/traffic_10lines.parquet')
 
 st.title('Traffic Forecaster')
 
@@ -57,127 +59,138 @@ df_filtered_initial = df.query(
 )
 df_filtered_initial = df_filtered_initial.groupby('date').agg(pax_total=('pax', 'sum')).reset_index()
 
-# Variables pour stocker les informations de sélection
-selected_model = ''
-selected_airports = ''
-
-# Mettre à jour les variables de sélection
-selected_model = model_selection
-selected_airports = f'{home_airport} → {paired_airport}'
-
-# Créer un graphique avec les données initiales et le titre approprié
+# Créer un graphique avec les données initiales
 fig = make_subplots(rows=1, cols=1)
 fig.add_trace(go.Scatter(x=df_filtered_initial['date'], y=df_filtered_initial['pax_total'], fill='tozeroy',
-                         name='Donnée de la route'), row=1, col=1)
-fig.update_layout(title=f'Donnée de la route - {selected_airports}')
+                         name=f'{home_airport} → {paired_airport}'), row=1, col=1)
+
+# Créer l'étiquette du graphique initial
+graph_label = f"Données de la route {home_airport} → {paired_airport}"
+
+# Mettre à jour le titre du graphique
+fig.update_layout(title=graph_label)
 
 mae = 0.0
 rmse = 0.0
 r_squared = 0.0
 if run_forecast_button:
-    forecast_button_clicked = True
+    forecast_button_clicked = True  # Mettre à jour le drapeau lorsque le bouton est cliqué
+
+    df_filtered = df.query(
+        f'home_airport == "{home_airport}" and paired_airport == "{paired_airport}"'
+    )
+    df_filtered = df_filtered.groupby('date').agg(pax_total=('pax', 'sum')).reset_index()
+
+    forecast_dates = pd.date_range(forecast_date, periods=nb_days)  # Définir les dates de prévision ici
 
     if model_selection == 'Prophet':
-        # Entraîner le modèle Prophet
-        model_prophet.fit(df_filtered_initial.rename(columns={'date': 'ds', 'pax_total': 'y'}))
+        # Convertir forecast_date en datetime64[ns]
+        forecast_date = pd.to_datetime(forecast_date)
 
-        # Générer les dates de prédiction
-        future_dates = pd.date_range(start=forecast_date, periods=nb_days)
+        # Filtrer les données historiques jusqu'à la date de prévision
+        df_filtered = df_filtered[df_filtered['date'] <= forecast_date]
 
-        # Effectuer la prédiction avec le modèle Prophet
-        forecast = model_prophet.predict(pd.DataFrame({'ds': future_dates}))
+        # Préparer les données pour Prophet
+        df_prophet = df_filtered[['date', 'pax_total']].rename(columns={'date': 'ds', 'pax_total': 'y'})
+
+        # Entraîner le modèle
+        model_prophet.fit(df_prophet)
+
+        # Prédire le trafic pour les dates de prévision
+        future = pd.DataFrame({'ds': forecast_dates})
+        forecast = model_prophet.predict(future)
+
+        actual_values = df_filtered['pax_total'].values[-nb_days:]
+        predicted_values = forecast['yhat'].values
+        mae, rmse, r_squared = calculate_performance(actual_values, predicted_values)
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
             go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', line=dict(dash='dash', color='red'),
-                       name='Donnée prédite avec Prophet'), row=1, col=1
+                       name='Prophet'), row=1, col=1
         )
 
-        # Calculer les performances
-        actual = df_filtered_initial['pax_total']
-        predicted = forecast['yhat'][:len(actual)]
-        mae, rmse, r_squared = calculate_performance(actual, predicted)
-
     elif model_selection == 'LGBMRegressor':
-        # Préparation des données pour LGBMRegressor
-        X = np.array(range(len(df_filtered_initial)))
-        y = df_filtered_initial['pax_total'].values
+        # Préparer les ensembles de données pour LGBMRegressor
+        X_train = df_filtered['date'].values.reshape(-1, 1)
+        y_train = df_filtered['pax_total'].values
+        X_forecast = forecast_dates.values.reshape(-1, 1)
 
-        # Entraînement du modèle LGBMRegressor
-        model_lgbm = LGBMRegressor()
-        model_lgbm.fit(X.reshape(-1, 1), y)
-
-        # Générer les dates de prédiction
-        forecast_dates = pd.date_range(start=forecast_date, periods=nb_days)
-
-        # Effectuer la prédiction avec le modèle LGBMRegressor
-        lgb_predictions = model_lgbm.predict(np.array(range(len(df_filtered_initial), len(df_filtered_initial) + nb_days))).reshape(-1, 1)
+        # Créer une instance du modèle LGBMRegressor
+        lgb_model = LGBMRegressor()
+        lgb_model.fit(X_train, y_train)
+        # Faire des prédictions avec LGBMRegressor
+        lgb_predictions = lgb_model.predict(X_forecast)
+        actual_values = df_filtered['pax_total'].values[-nb_days:]
+        mae, rmse, r_squared = calculate_performance(actual_values, lgb_predictions)
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
             go.Scatter(x=forecast_dates, y=lgb_predictions, mode='lines', line=dict(dash='dash', color='green'),
-                       name='Donnée prédite avec LGBMRegressor'), row=1, col=1
+                       name='LGBMRegressor'), row=1, col=1
         )
-
-        # Calculer les performances
-        actual = df_filtered_initial['pax_total']
-        predicted = np.concatenate([actual, lgb_predictions])
-        mae, rmse, r_squared = calculate_performance(actual, predicted)
 
     elif model_selection == 'XGBRegressor':
-        # Préparation des données pour XGBRegressor
-        X = np.array(range(len(df_filtered_initial)))
-        y = df_filtered_initial['pax_total'].values
+        # Préparer les ensembles de données pour XGBRegressor
+        ref_date = np.min(df_filtered['date']).to_pydatetime()
+        X_train_numeric = (df_filtered['date'] - ref_date).dt.days.values.reshape(-1, 1)
+        X_forecast_numeric = (forecast_dates - ref_date).days.to_numpy().reshape(-1, 1)
 
-        # Entraînement du modèle XGBRegressor
-        model_xgb = XGBRegressor()
-        model_xgb.fit(X.reshape(-1, 1), y)
+        y_train = df_filtered['pax_total'].values
 
-        # Générer les dates de prédiction
-        forecasted_dates = pd.date_range(start=forecast_date, periods=nb_days)
+        # Créer une instance du modèle XGBRegressor
+        xgb_model = XGBRegressor()
+        xgb_model.fit(X_train_numeric, y_train)
 
-        # Effectuer la prédiction avec le modèle XGBRegressor
-        forecasted_values = model_xgb.predict(np.array(range(len(df_filtered_initial), len(df_filtered_initial) + nb_days))).reshape(-1, 1)
+        # Faire des prédictions avec XGBRegressor
+        xgb_predictions = xgb_model.predict(X_forecast_numeric)
+
+        # Créer un dataframe pour les prévisions
+        forecast_df = pd.DataFrame({'date': forecast_dates, 'pax_total': xgb_predictions})
+
+        actual_values = df_filtered['pax_total'].values[-nb_days:]
+        predicted_values = forecast_df['pax_total'].values
+        mae, rmse, r_squared = calculate_performance(actual_values, predicted_values)
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
-            go.Scatter(x=forecasted_dates, y=forecasted_values, mode='lines', line=dict(dash='dash', color='yellow'),
-                       name='Donnée prédite avec XGBRegressor'), row=1, col=1
+            go.Scatter(x=forecast_dates, y=xgb_predictions, mode='lines', line=dict(dash='dash', color='blue'),
+                       name='XGBRegressor'), row=1, col=1
         )
-
-        # Calculer les performances
-        actual = df_filtered_initial['pax_total']
-        predicted = np.concatenate([actual, forecasted_values])
-        mae, rmse, r_squared = calculate_performance(actual, predicted)
 
     elif model_selection == 'RandomForestRegressor':
-        # Préparation des données pour RandomForestRegressor
-        X = np.array(range(len(df_filtered_initial)))
-        y = df_filtered_initial['pax_total'].values
+        # Préparer les ensembles de données pour RandomForestRegressor
+        ref_date = np.min(df_filtered['date']).to_pydatetime()
+        X_train_numeric = (df_filtered['date'] - ref_date).dt.days.values.reshape(-1, 1)
+        X_forecast_numeric = (forecast_dates - ref_date).days.to_numpy().reshape(-1, 1)
 
-        # Entraînement du modèle RandomForestRegressor
-        model_rf = RandomForestRegressor()
-        model_rf.fit(X.reshape(-1, 1), y)
+        y_train = df_filtered['pax_total'].values
 
-        # Générer les dates de prédiction
-        prediction_dates = pd.date_range(start=forecast_date, periods=nb_days)
+        # Créer une instance du modèle RandomForestRegressor
+        rf_model = RandomForestRegressor()
+        rf_model.fit(X_train_numeric, y_train)
 
-        # Effectuer la prédiction avec le modèle RandomForestRegressor
-        predictions = model_rf.predict(np.array(range(len(df_filtered_initial), len(df_filtered_initial) + nb_days))).reshape(-1, 1)
+        # Faire des prédictions avec RandomForestRegressor
+        rf_predictions = rf_model.predict(X_forecast_numeric)
+
+        # Créer un dataframe pour les prévisions
+        forecast_df = pd.DataFrame({'date': forecast_dates, 'pax_total': rf_predictions})
+
+        actual_values = df_filtered['pax_total'].values[-nb_days:]
+        predicted_values = forecast_df['pax_total'].values
+        mae, rmse, r_squared = calculate_performance(actual_values, predicted_values)
 
         # Ajouter les données prédictives au graphique
         fig.add_trace(
-            go.Scatter(x=prediction_dates, y=predictions, mode='lines', line=dict(dash='dash', color='blue'),
-                       name='Donnée prédite avec RandomForestRegressor'), row=1, col=1
+            go.Scatter(x=forecast_dates, y=rf_predictions, mode='lines', line=dict(dash='dash', color='orange'),
+                       name='RandomForestRegressor'), row=1, col=1
         )
 
-        # Calculer les performances
-        actual = df_filtered_initial['pax_total']
-        predicted = np.concatenate([actual, predictions])
-        mae, rmse, r_squared = calculate_performance(actual, predicted)
-
-# Mettre à jour le titre du graphique avec les performances
-fig.update_layout(title=f'Donnée de la route - {selected_airports} | MAE: {mae:.2f}, RMSE: {rmse:.2f}, R-Squared: {r_squared:.2f}')
+    # Mettre à jour le titre du graphique avec les performances
+    graph_label += f"<br>MAE: {mae:.2f} | RMSE: {rmse:.2f} | R^2: {r_squared:.2f}"
+    fig.update_layout(title=graph_label)
 
 # Afficher le graphique
 st.plotly_chart(fig)
+
+

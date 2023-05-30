@@ -1,5 +1,3 @@
-
-df = pd.read_parquet('src/data/traffic_10lines.parquet')
 import pandas as pd
 import streamlit as st
 import plotly.graph_objs as go
@@ -18,7 +16,7 @@ st.image(image_path, caption="Logo", use_column_width=True)
 HOME_AIRPORTS = ('LGW', 'LIS', 'LYS', 'NTE')
 PAIRED_AIRPORTS = ('FUE', 'AMS', 'ORY', 'BCN', 'OPO')
 
-df = pd.read_parquet('data/traffic_10lines.parquet')
+df = pd.read_parquet('src/data/traffic_10lines.parquet')
 
 st.title('Traffic Forecaster')
 

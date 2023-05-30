@@ -20,7 +20,7 @@ Environment
 ```conda create --name airtraffic```
 2. Activatz your virtual environment:
 ```conda activate airtraffic```
-3. Install Cookiecutter and streamlit with anaconda prompt :
+3. Install Cookiecutter and streamlit with anaconda prompt:
 ```pip install Cookiecutter streamlit```
 
 Repo
